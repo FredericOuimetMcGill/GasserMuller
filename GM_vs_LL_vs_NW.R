@@ -79,7 +79,7 @@ KK <- c(7) # indices for the mesh
 JJ <- 1:3 # target regression function indices
 RR <- 1:1 # replication indices (multiple of 31)
 
-tol1 <- 1e-3
+tol1 <- 1e-1
 tol2 <- 1e-1
 
 ###########################
