@@ -735,14 +735,15 @@ for (j in JJ) {
 # Calculate the duration
 print(Sys.time() - start_time)
 
-# Save the summary results to an Excel file in the specified path
-summary_output_file <- file.path(path, "ISE_MC_results.xlsx")
-write_xlsx(summary_results, summary_output_file)
+# Save the summary results to a CSV file in the specified path
+summary_output_file <- file.path(path, "ISE_MC_results.csv")
+write.csv(summary_results, summary_output_file, row.names = FALSE)
 
-print("Summary results saved to ISE_MC_results.xlsx")
+print("Summary results saved to ISE_MC_results.csv")
 
-# Save the raw results to an Excel file in the specified path
-raw_output_file <- file.path(path, "raw_ISE_MC_results.xlsx")
-write_xlsx(raw_results, raw_output_file)
+# Save the raw results to a CSV file in the specified path
+raw_output_file <- file.path(path, "raw_ISE_MC_results.csv")
+write.csv(raw_results, raw_output_file, row.names = FALSE)
 
-print("Raw results saved to raw_ISE_MC_results.xlsx")
+print("Raw results saved to raw_ISE_MC_results.csv")
+
