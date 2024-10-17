@@ -2,36 +2,76 @@
 ## Gasser-Muller estimator with Dirichlet kernel on the simplex ##
 ##################################################################
 
-## Written by Frederic Ouimet (September 2024)
+## Written by Frederic Ouimet (October 2024)
 
-require("LaplacesDemon") # for the Dirichlet distribution
-require("ggplot2") # for plotting
-require("cubature") # for integration methods
-require("parallel") # to parallelize the code
-require("writexl") # writing Excel files
+require("cubature")             # for integrals
+require("doFuture")             # for parallel execution with foreach
+require("future.batchtools")    # for batchtools integration with future
+require("ggplot2")              # for plotting
+require("LaplacesDemon")        # for the Dirichlet distribution
+require("parallel")             # for parallel execution of calculations
+require("tidyverse")            # for data manipulation and visualization
+require("writexl")              # to export output to Excel files
 
-#####################
-## Parallelization ##
-#####################
+##############################
+## Parallelization on cores ##
+##############################
 
 # Define the list of libraries to load on each cluster node
+
 libraries_to_load <- c(
-  "LaplacesDemon", "ggplot2", "cubature", "parallel", "writexl"
+  "cubature",
+  "doFuture",
+  "future.batchtools",
+  "ggplot2",
+  "LaplacesDemon",
+  "parallel",
+  "tidyverse",
+  "writexl"
 )
 
 # Define the list of variables/functions to export to the worker nodes
+
 vars_to_export <- c(
-  "BB", "MCsim", "tol1", "tol2", "path", "d",
-  "KK", "JJ", "MM", "RR", "j",
-  "xx", "unif_sample", "method",
-  "mesh", "n_to_k", "m", "mm",
-  "hat_m", "LSCV", "LSCV_MC",
-  "b_opt", "b_opt_MC",
-  "b_opt_grid", "b_opt_MC_grid",
-  "adaptIntegrate"
+  "BB",
+  "JJ",
+  "KK",
+  "LSCV",
+  "LSCV_MC",
+  "MCsim",
+  "MM",
+  "RR",
+  "adaptIntegrate",
+  "b_opt",
+  "b_opt_MC",
+  "b_opt_MC_grid",
+  "b_opt_LOOCV",
+  "b_opt_grid",
+  "b_opt_value_MC_grid",
+  "d",
+  "elapsed_time",
+  "hat_m",
+  "integrand",
+  "j",
+  "m",
+  "mesh",
+  "method",
+  "mm",
+  "n_to_k",
+  "path",
+  "results",
+  "results_grid",
+  "RSS_LOOCV",
+  "s_grid",
+  "start_time",
+  "tol1",
+  "tol2",
+  "unif_sample",
+  "xx"
 )
 
 # Sets up a parallel cluster, loads necessary libraries, and exports required variables globally
+
 setup_parallel_cluster <- function() {
   num_cores <<- detectCores() - 1
   cl <- makeCluster(num_cores) # Create the cluster
@@ -51,6 +91,7 @@ setup_parallel_cluster <- function() {
 }
 
 # Initialize all variables in the list as NULL except vars_to_export and setup_parallel_cluster
+
 invisible(
   lapply(
     vars_to_export[!(vars_to_export %in% c("vars_to_export", "setup_parallel_cluster"))],
@@ -62,9 +103,12 @@ invisible(
 # Set the path #
 ################
 
-#path <- file.path("C://Users//fred1//Dropbox//Daayeb_Khardani_Ouimet_projets//Daayeb_Genest_Khardani_Ouimet_2024//test_simulations", fsep = .Platform$file.sep)
+# path <- file.path(
+#   "C://Users//fred1//Desktop//Github_GasserMuller",
+#   fsep = .Platform$file.sep
+# )
 path <- getwd()
-#setwd(path)
+# setwd(path)
 
 ##############
 # Parameters #
@@ -79,8 +123,20 @@ KK <- c(7) # indices for the mesh
 JJ <- 1:3 # target regression function indices
 RR <- 1:1 # replication indices (multiple of 31)
 
-tol1 <- 1e-4
+tol1 <- 1e-2
 tol2 <- 1e-1
+
+##############################
+## Parallelization on nodes ##
+##############################
+
+resources_list <- list(
+  cpus_per_task = cores_per_node,
+  mem = "240G",
+  walltime = "2:00:00",
+  nodes = 1
+  # Omit 'partition' to let SLURM choose
+)
 
 ###########################
 ## Mesh of design points ##
@@ -648,14 +704,32 @@ ISE_MC <- function(xx, j, method) {
   return(b_opt_MC_grid(xx, j, method, unif_sample, return_LSCV_MC = TRUE))
 }
 
-###############
-## Main code ##
-###############
+###############################
+## Main code (exact version) ##
+###############################
 
-# Create data frames to store the results
+.libPaths("~/R/library")
+
+# Disable the check for random number generation misuse in doFuture
+options(doFuture.rng.onMisuse = "ignore")
+
+# Register the doFuture parallel backend
+registerDoFuture()
+
+# Tweak the batchtools_slurm with the custom template and resources
+myslurm <- tweak(
+  batchtools_slurm,
+  template = "batchtools.slurm.iid.tmpl",
+  resources = resources_list
+)
+
+# Set the plan for future
+plan(list(myslurm, multisession))
+
+# Create empty data frames to store the results
 summary_results <- data.frame(
-  k = integer(),
   j = integer(),
+  k = integer(),
   method = character(),
   mean_ISE_MC = numeric(),
   sd_ISE_MC = numeric(),
@@ -665,8 +739,8 @@ summary_results <- data.frame(
 )
 
 raw_results <- data.frame(
-  k = integer(),
   j = integer(),
+  k = integer(),
   method = character(),
   ISE_MC = numeric(),
   stringsAsFactors = FALSE
@@ -675,37 +749,136 @@ raw_results <- data.frame(
 # Capture the start time
 start_time <- Sys.time()
 
-# Loop over all combinations of j, k, and method
+# Parallel loop over the replications (RR), each node processes one set of RR values
+res <- foreach(r = RR, .combine = "rbind", 
+               .export = vars_to_export,
+               .packages = libraries_to_load) %dopar% {
+                 # Set a unique seed for each node (replication)
+                 set.seed(r)
+                 
+                 # Set library paths within each worker node
+                 .libPaths("~/R/library")
+                 
+                 local_raw_results <- data.frame(
+                   j = integer(),
+                   k = integer(),
+                   method = character(),
+                   ISE_MC = numeric(),
+                   stringsAsFactors = FALSE
+                 )
+                 
+                 # Loop over combinations of j, k, and method within each worker
+                 for (j in JJ) {
+                   for (k in KK) {
+                     # Generate the mesh of design points once for each k
+                     xx <- mesh(k)
+                     
+                     for (method in MM) {
+                       # List to store ISE_MC values for each replication
+                       ISE_MC_values <- numeric(length(RR))
+                       
+                       # Sequentially compute ISE_MC values for all replications
+                       for (r in RR) {
+                         cat(paste("Computing ISE_MC for j =", j, "k =", k, "method =", method, "replication =", r, "\n"))
+                         
+                         # Compute the ISE_MC for the given replication
+                         ISE_MC_values[r] <- ISE_MC(xx, j, method)
+                       }
+                       
+                       # Store the raw results
+                       for (r in RR) {
+                         local_raw_results <- rbind(
+                           local_raw_results,
+                           data.frame(
+                             j = j,
+                             k = k,
+                             method = method,
+                             ISE_MC = ISE_MC_values[r],
+                             stringsAsFactors = FALSE
+                           )
+                         )
+                       }
+                       
+                       # Process the results for this combination of j, k, and method
+                       mean_ISE_MC <- mean(ISE_MC_values)
+                       sd_ISE_MC <- sd(ISE_MC_values)
+                       median_ISE_MC <- median(ISE_MC_values)
+                       IQR_ISE_MC <- IQR(ISE_MC_values)
+                       
+                       # Store the summary results
+                       summary_results <- rbind(
+                         summary_results,
+                         data.frame(
+                           j = j,
+                           k = k,
+                           method = method,
+                           mean_ISE_MC = mean_ISE_MC,
+                           sd_ISE_MC = sd_ISE_MC,
+                           median_ISE_MC = median_ISE_MC,
+                           IQR_ISE_MC = IQR_ISE_MC,
+                           stringsAsFactors = FALSE
+                         )
+                       )
+                     }
+                   }
+                 }
+                 
+                 # Return the raw results for this replication
+                 return(local_raw_results)
+               }
+
+# Combine results from all nodes
+raw_results <- res
+
+# Stop parallel execution
+plan(sequential)
+
+# Calculate the duration in minutes
+elapsed_time_minutes <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
+print(paste("Elapsed time:", round(elapsed_time_minutes, 2), "minutes"))
+
+# Save the raw results to an Excel file in the specified path
+raw_output_file <- file.path(path, "raw_ISE_MC_results.csv")
+write_xlsx(raw_results, raw_output_file)
+
+print("Raw results saved to raw_ISE_MC_results.csv")
+
+#########################
+## Process the results ##
+#########################
+
+# Create a data frame to store the summary results
+summary_results <- data.frame(
+  j = integer(),
+  k = integer(),
+  method = character(),
+  mean_ISE_MC = numeric(),
+  sd_ISE_MC = numeric(),
+  median_ISE_MC = numeric(),
+  IQR_ISE_MC = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Loop through the results to compute the summary statistics
 for (j in JJ) {
   for (k in KK) {
-    # Generate the mesh of design points once for each k
-    xx <- mesh(k)
-    
     for (method in MM) {
+      # Filter the raw results by j, k, and method
+      filtered_results <- raw_results %>%
+        filter(j == !!j, k == !!k, method == !!method)
       
-      # List to store ISE_MC values for each replication
-      ISE_MC_values <- numeric(length(RR))
-      
-      # Sequentially compute ISE_MC values for all replications
-      for (r in RR) {
-        cat(paste("Computing ISE_MC for j =", j, "k =", k, "method =", method, "replication =", r, "\n"))
-        
-        # Compute the ISE_MC for the given replication
-        ISE_MC_values[r] <- ISE_MC(xx, j, method)
-      }
-      
-      # Process the results for this combination of j, k, and method
-      mean_ISE_MC <- mean(ISE_MC_values)
-      sd_ISE_MC <- sd(ISE_MC_values)
-      median_ISE_MC <- median(ISE_MC_values)
-      IQR_ISE_MC <- IQR(ISE_MC_values)
+      ISE_values <- filtered_results$ISE_MC
+      mean_ISE_MC <- mean(ISE_values)
+      sd_ISE_MC <- sd(ISE_values)
+      median_ISE_MC <- median(ISE_values)
+      IQR_ISE_MC <- IQR(ISE_values)
       
       # Store the summary results
       summary_results <- rbind(
         summary_results,
         data.frame(
-          k = k,
           j = j,
+          k = k,
           method = method,
           mean_ISE_MC = mean_ISE_MC,
           sd_ISE_MC = sd_ISE_MC,
@@ -714,36 +887,120 @@ for (j in JJ) {
           stringsAsFactors = FALSE
         )
       )
-      
-      # Store the raw results
-      for (r in RR) {
-        raw_results <- rbind(
-          raw_results,
-          data.frame(
-            k = k,
-            j = j,
-            method = method,
-            ISE_MC = ISE_MC_values[r],
-            stringsAsFactors = FALSE
-          )
-        )
-      }
     }
   }
 }
 
-# Calculate the duration
-print(Sys.time() - start_time)
-
-# Save the summary results to a CSV file in the specified path
+# Save the summary results to an Excel file in the specified path
 summary_output_file <- file.path(path, "ISE_MC_results.csv")
-write.csv(summary_results, summary_output_file, row.names = FALSE)
+write_xlsx(summary_results, summary_output_file)
 
 print("Summary results saved to ISE_MC_results.csv")
 
-# Save the raw results to a CSV file in the specified path
-raw_output_file <- file.path(path, "raw_ISE_MC_results.csv")
-write.csv(raw_results, raw_output_file, row.names = FALSE)
+#############################################
+## Illustration (Section 5)                ##
+#############################################
 
-print("Raw results saved to raw_ISE_MC_results.csv")
+vectors <- list(
+  c(77.5, 19.5, 3.0, 10.4),
+  c(71.9, 24.9, 3.2, 11.7),
+  c(50.7, 36.1, 13.2, 12.8),
+  c(52.2, 40.9, 6.6, 13.0),
+  c(70.0, 26.5, 3.5, 15.7),
+  c(66.5, 32.2, 1.3, 16.3),
+  c(43.1, 55.3, 1.6, 18.0),
+  c(53.4, 36.8, 9.8, 18.7),
+  c(15.5, 54.4, 30.1, 20.7),
+  c(31.7, 41.5, 26.8, 22.1),
+  c(65.7, 27.8, 6.5, 22.4),
+  c(70.4, 29.0, 0.6, 24.4),
+  c(17.4, 53.6, 29.0, 25.8),
+  c(10.6, 69.8, 19.6, 32.5),
+  c(38.2, 43.1, 18.7, 33.6),
+  c(10.8, 52.7, 36.5, 36.8),
+  c(18.4, 50.7, 30.9, 37.8),
+  c(4.6, 47.4, 48.0, 36.9),
+  c(15.6, 50.4, 34.0, 42.2),
+  c(31.9, 45.1, 23.0, 47.0),
+  c(9.5, 53.5, 37.0, 47.1),
+  c(17.1, 48.0, 34.9, 48.4),
+  c(10.5, 55.4, 34.1, 49.4),
+  c(4.8, 54.7, 41.0, 49.5),
+  c(2.6, 45.2, 52.2, 59.2),
+  c(11.4, 52.7, 35.9, 60.1),
+  c(6.7, 46.9, 46.4, 61.7),
+  c(6.9, 49.7, 43.4, 62.4),
+  c(4.0, 44.9, 51.1, 69.3),
+  c(7.4, 51.6, 40.9, 73.6),
+  c(4.8, 49.5, 45.7, 74.4),
+  c(4.5, 48.5, 47.0, 78.5),
+  c(6.6, 52.1, 41.3, 82.9),
+  c(6.7, 47.3, 45.9, 87.7),
+  c(7.4, 45.6, 46.9, 88.1),
+  c(6.0, 48.9, 45.1, 90.4),
+  c(6.3, 53.8, 39.9, 90.6),
+  c(2.5, 48.0, 49.5, 97.7),
+  c(2.0, 47.8, 50.2, 103.7)
+)
 
+# Extract xx and y from the given vectors
+xx <- lapply(vectors, function(v) v[1:2] / 100)
+y <- as.numeric(lapply(vectors, function(v) v[4]))
+
+# Generate a grid of points for s
+s_grid <- expand.grid(seq(0, 1, length.out = 100), seq(0, 1, length.out = 100))
+s_grid <- s_grid[rowSums(s_grid) <= 1, ]
+
+# Define the function to calculate the RSS using LOOCV for a given bandwidth b
+RSS_LOOCV <- function(xx, y, b, method) {
+  n <- length(xx)
+  rss <- 0
+  for (i in 1:n) {
+    # Exclude the i-th observation
+    xx_minus_i <- xx[-i]
+    y_minus_i <- y[-i]
+    s <- xx[[i]] # Use double brackets to access the i-th vector directly
+    y_i <- y[[i]] # Use double brackets to access the i-th response value directly
+    y_hat_i <- hat_m(xx_minus_i, b, s, j, method, y_minus_i)
+    rss <- rss + (y_i - y_hat_i) ^ 2
+  }
+  return(rss / n)
+}
+
+# Define the function to find the optimal bandwidth by minimizing the RSS using LOOCV
+b_opt_LOOCV <- function(xx, y, method) {
+  objective_function <- function(b) {
+    RSS_LOOCV(xx, y, b, method)
+  }
+  res <- optimize(objective_function, interval = c(min(BB), max(BB)))
+  return(res$minimum)
+}
+
+# Assuming xx and y are defined as in the original code
+method <- "LL"
+optimal_b <- b_opt_LOOCV(xx, y, method)
+
+print(paste("Optimal bandwidth (b):", optimal_b))
+
+# Plot RSS as a function of b
+b_values <- seq(0.05, 1, by = 0.01)
+rss_values <- sapply(b_values, function(b) RSS_LOOCV(xx, y, b, method))
+results_df <- data.frame(b = b_values, RSS = rss_values)
+
+# Save the plot to a PDF file in the specified path
+plot_file <- file.path(path, "rss_b.pdf")
+cairo_pdf(plot_file, width = 8, height = 5)  # Adjust width and height for aspect ratio
+
+ggplot(results_df, aes(x = b, y = RSS)) +
+  geom_line(color = "blue") +
+  labs(x = "b", y = "RSS") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 18)
+  )
+
+dev.off()
+
+print(paste("RSS plot saved to", plot_file))
