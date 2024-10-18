@@ -729,18 +729,6 @@ myslurm <- tweak(
 # Set the plan for future
 plan(list(myslurm, multisession))
 
-# Create empty data frames to store the results
-summary_results <- data.frame(
-  j = integer(),
-  k = integer(),
-  method = character(),
-  mean_ISE_MC = numeric(),
-  sd_ISE_MC = numeric(),
-  median_ISE_MC = numeric(),
-  IQR_ISE_MC = numeric(),
-  stringsAsFactors = FALSE
-)
-
 raw_results <- data.frame(
   j = integer(),
   k = integer(),
@@ -756,79 +744,48 @@ start_time <- Sys.time()
 res <- foreach(r = RR, .combine = "rbind", 
                .export = vars_to_export,
                .packages = libraries_to_load) %dopar% {
-                 # Set a unique seed for each node (replication)
-                 set.seed(r)
-                 
-                 # Set library paths within each worker node
-                 .libPaths("~/R/library")
-                 
-                 local_raw_results <- data.frame(
-                   j = integer(),
-                   k = integer(),
-                   method = character(),
-                   ISE_MC = numeric(),
-                   stringsAsFactors = FALSE
-                 )
-                 
-                 # Loop over combinations of j, k, and method within each worker
-                 for (j in JJ) {
-                   for (k in KK) {
-                     # Generate the mesh of design points once for each k
-                     xx <- mesh(k)
-                     
-                     for (method in MM) {
-                       # List to store ISE_MC values for each replication
-                       ISE_MC_values <- numeric(length(RR))
-                       
-                       # Sequentially compute ISE_MC values for all replications
-                       for (r in RR) {
-                         cat(paste("Computing ISE_MC for j =", j, "k =", k, "method =", method, "replication =", r, "\n"))
-                         
-                         # Compute the ISE_MC for the given replication
-                         ISE_MC_values[r] <- ISE_MC(xx, j, method)
-                       }
-                       
-                       # Store the raw results
-                       for (r in RR) {
-                         local_raw_results <- rbind(
-                           local_raw_results,
-                           data.frame(
-                             j = j,
-                             k = k,
-                             method = method,
-                             ISE_MC = ISE_MC_values[r],
-                             stringsAsFactors = FALSE
-                           )
-                         )
-                       }
-                       
-                       # Process the results for this combination of j, k, and method
-                       mean_ISE_MC <- mean(ISE_MC_values)
-                       sd_ISE_MC <- sd(ISE_MC_values)
-                       median_ISE_MC <- median(ISE_MC_values)
-                       IQR_ISE_MC <- IQR(ISE_MC_values)
-                       
-                       # Store the summary results
-                       summary_results <- rbind(
-                         summary_results,
-                         data.frame(
-                           j = j,
-                           k = k,
-                           method = method,
-                           mean_ISE_MC = mean_ISE_MC,
-                           sd_ISE_MC = sd_ISE_MC,
-                           median_ISE_MC = median_ISE_MC,
-                           IQR_ISE_MC = IQR_ISE_MC,
-                           stringsAsFactors = FALSE
-                         )
-                       )
-                     }
-                   }
-                 }
-                 
-                 # Return the raw results for this replication
-                 return(local_raw_results)
-               }
+  # Set a unique seed for each node (replication)
+  set.seed(r)
+  
+  # Set library paths within each worker node
+  .libPaths("~/R/library")
+  
+  local_raw_results <- data.frame(
+    j = integer(),
+    k = integer(),
+    method = character(),
+    ISE_MC = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Loop over combinations of j, k, and method within each worker
+  for (j in JJ) {
+    for (k in KK) {
+      # Generate the mesh of design points once for each k
+      xx <- mesh(k)
+      
+      for (method in MM) {
+        # Compute ISE_MC for the current combination
+        ISE_MC_value <- ISE_MC(xx, j, method)
+        
+        # Store the raw results for this replication
+        local_raw_results <- rbind(
+          local_raw_results,
+          data.frame(
+            j = j,
+            k = k,
+            method = method,
+            ISE_MC = ISE_MC_value,
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+    }
+  }
+  
+  # Return the raw results for this replication
+  return(local_raw_results)
+}
 
 # Combine results from all nodes
 raw_results <- res
@@ -841,10 +798,10 @@ elapsed_time_minutes <- as.numeric(difftime(Sys.time(), start_time, units = "min
 print(paste("Elapsed time:", round(elapsed_time_minutes, 2), "minutes"))
 
 # Save the raw results to an Excel file in the specified path
-raw_output_file <- file.path(path, "raw_ISE_MC_results.csv")
+raw_output_file <- file.path(path, "raw_ISE_MC_results_dependent.csv")
 write.csv(raw_results, raw_output_file, row.names = FALSE)
 
-print("Raw results saved to raw_ISE_MC_results.csv")
+print("Raw results saved to raw_ISE_MC_results_dependent.csv")
 
 #########################
 ## Process the results ##
@@ -895,10 +852,10 @@ for (j in JJ) {
 }
 
 # Save the summary results to an Excel file in the specified path
-summary_output_file <- file.path(path, "ISE_MC_results.csv")
+summary_output_file <- file.path(path, "ISE_MC_results_dependent.csv")
 write.csv(summary_results, summary_output_file, row.names = FALSE)
 
-print("Summary results saved to ISE_MC_results.csv")
+print("Summary results saved to ISE_MC_results_dependent.csv")
 
 #############################################
 ## Illustration (Section 5)                ##
