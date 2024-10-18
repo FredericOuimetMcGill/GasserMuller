@@ -125,9 +125,9 @@ BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 MM <- list("GM", "LL", "NW") # list of Dirichlet kernel methods
 KK <- c(7, 10, 14) # indices for the mesh
 JJ <- 1:3 # target regression function indices
-RR <- 1:1 # replication indices
+RR <- 1:200 # replication indices
 
-tol1 <- 1e-1
+tol1 <- 1e-3
 tol2 <- 1e-1
 
 ##############################
@@ -137,7 +137,7 @@ tol2 <- 1e-1
 resources_list <- list(
   cpus_per_task = cores_per_node,
   mem = "240G",
-  walltime = "4:00:00",
+  walltime = "14:00:00",
   nodes = 1
   # Omit 'partition' to let SLURM choose
 )
@@ -799,10 +799,10 @@ elapsed_time_minutes <- as.numeric(difftime(Sys.time(), start_time, units = "min
 print(paste("Elapsed time:", round(elapsed_time_minutes, 2), "minutes"))
 
 # Save the raw results to an Excel file in the specified path
-raw_output_file <- file.path(path, "raw_ISE_MC_results_dependent.csv")
+raw_output_file <- file.path(path, "raw_ISE_MC_results.csv")
 write.csv(raw_results, raw_output_file, row.names = FALSE)
 
-print("Raw results saved to raw_ISE_MC_results_dependent.csv")
+print("Raw results saved to raw_ISE_MC_results.csv")
 
 #########################
 ## Process the results ##
@@ -853,10 +853,10 @@ for (j in JJ) {
 }
 
 # Save the summary results to an Excel file in the specified path
-summary_output_file <- file.path(path, "ISE_MC_results_dependent.csv")
+summary_output_file <- file.path(path, "ISE_MC_results.csv")
 write.csv(summary_results, summary_output_file, row.names = FALSE)
 
-print("Summary results saved to ISE_MC_results_dependent.csv")
+print("Summary results saved to ISE_MC_results.csv")
 
 # #############################################
 # ## Illustration (Section 5)                ##
