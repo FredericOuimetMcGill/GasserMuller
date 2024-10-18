@@ -23,6 +23,7 @@ require("writexl")              # to export output to Excel files
 libraries_to_load <- c(
   "cubature",
   "doFuture",
+  "fs",
   "future.batchtools",
   "ggplot2",
   "LaplacesDemon",
