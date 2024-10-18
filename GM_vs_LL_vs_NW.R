@@ -6,6 +6,7 @@
 
 require("cubature")             # for integrals
 require("doFuture")             # for parallel execution with foreach
+require("fs")                   # for filesystem operations (dependency)
 require("future.batchtools")    # for batchtools integration with future
 require("ggplot2")              # for plotting
 require("LaplacesDemon")        # for the Dirichlet distribution
@@ -116,14 +117,16 @@ path <- getwd()
 
 d <- 2 # dimension of simplex
 MCsim <- 10 ^ 3 # number of uniforms sampled for integral MC estimates
-BB <- seq(0.01, 1, by = 0.01) # bandwidths for LSCV_MC graphs
+
+cores_per_node <- 63 # number of cores for each node in the super-computer
+BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 
 MM <- list("GM", "LL", "NW") # list of Dirichlet kernel methods
-KK <- c(7) # indices for the mesh
+KK <- c(7, 10, 14) # indices for the mesh
 JJ <- 1:3 # target regression function indices
-RR <- 1:1 # replication indices (multiple of 31)
+RR <- 1:1 # replication indices
 
-tol1 <- 1e-2
+tol1 <- 1e-1
 tol2 <- 1e-1
 
 ##############################
@@ -133,7 +136,7 @@ tol2 <- 1e-1
 resources_list <- list(
   cpus_per_task = cores_per_node,
   mem = "240G",
-  walltime = "2:00:00",
+  walltime = "4:00:00",
   nodes = 1
   # Omit 'partition' to let SLURM choose
 )
@@ -719,7 +722,7 @@ registerDoFuture()
 # Tweak the batchtools_slurm with the custom template and resources
 myslurm <- tweak(
   batchtools_slurm,
-  template = "batchtools.slurm.iid.tmpl",
+  template = "batchtools.slurm.tmpl",
   resources = resources_list
 )
 
@@ -839,7 +842,7 @@ print(paste("Elapsed time:", round(elapsed_time_minutes, 2), "minutes"))
 
 # Save the raw results to an Excel file in the specified path
 raw_output_file <- file.path(path, "raw_ISE_MC_results.csv")
-write_xlsx(raw_results, raw_output_file)
+write.csv(raw_results, raw_output_file, row.names = FALSE)
 
 print("Raw results saved to raw_ISE_MC_results.csv")
 
@@ -893,7 +896,7 @@ for (j in JJ) {
 
 # Save the summary results to an Excel file in the specified path
 summary_output_file <- file.path(path, "ISE_MC_results.csv")
-write_xlsx(summary_results, summary_output_file)
+write.csv(summary_results, summary_output_file, row.names = FALSE)
 
 print("Summary results saved to ISE_MC_results.csv")
 

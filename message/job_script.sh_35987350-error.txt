@@ -1,0 +1,8 @@
+Loading required package: LaplacesDemon
+Loading required package: ggplot2
+Loading required package: cubature
+Loading required package: parallel
+Loading required package: writexl
+Error in unserialize(node$con) : error reading from connection
+Calls: ISE_MC ... FUN -> recvData -> recvData.SOCKnode -> unserialize
+Execution halted

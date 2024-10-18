@@ -1,0 +1,17 @@
+#!/bin/sh
+
+#SBATCH --job-name=<%= job.name %>
+#SBATCH --time=<%= resources$walltime %>
+#SBATCH --nodes=<%= resources$nodes %>
+#SBATCH --cpus-per-task=<%= resources$cpus_per_task %>
+#SBATCH --mem=<%= resources$mem %>
+#SBATCH -o log/%x_%j_%A_%a.out
+#SBATCH --mail-user=frederic.ouimet.23@gmail.com
+#SBATCH --mail-type=ALL
+#SBATCH --output=message/%x_%j_%A_%a-result.txt
+#SBATCH --error=message/%x_%j_%A_%a-error.txt
+#SBATCH --exclusive
+
+## Run R:
+module load StdEnv/2023 r/4.3.1
+Rscript -e 'batchtools::doJobCollection("<%= uri %>")'
