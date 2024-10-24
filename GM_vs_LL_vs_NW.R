@@ -125,7 +125,7 @@ BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 MM <- list("GM", "LL", "NW") # list of Dirichlet kernel methods
 KK <- c(7, 10, 14) # indices for the mesh
 JJ <- 1:3 # target regression function indices
-RR <- 1:50 # replication indices
+RR <- 1:2 # replication indices
 
 tol1 <- 1e-3
 tol2 <- 1e-1
