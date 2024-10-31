@@ -1,1 +1,0 @@
-Computing ISE_MC for j = 1 k = 7 method = GM replication = 1 

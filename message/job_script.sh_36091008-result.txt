@@ -1,4 +1,0 @@
-[1] "Elapsed time: 11.01 minutes"
-[1] "Raw results saved to raw_ISE_MC_results_dependent.csv"
-[1] "Summary results saved to ISE_MC_results_dependent.csv"
-[1] "Optimal bandwidth (b): 0.219521406435672"

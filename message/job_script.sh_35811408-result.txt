@@ -1,4 +1,0 @@
-Computing ISE_MC for j = 1 k = 7 method = GM replication = 1 
-Computing ISE_MC for j = 1 k = 7 method = LL replication = 1 
-Computing ISE_MC for j = 1 k = 7 method = NW replication = 1 
-Computing ISE_MC for j = 2 k = 7 method = GM replication = 1 

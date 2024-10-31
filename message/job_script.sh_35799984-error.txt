@@ -1,7 +1,0 @@
-Loading required package: LaplacesDemon
-Loading required package: ggplot2
-Loading required package: cubature
-Loading required package: parallel
-Loading required package: writexl
-/localscratch/spool/slurmd/job35799984/slurm_script: line 17: 27380 Killed                  Rscript GM_vs_LL_vs_NW.R
-slurmstepd: error: Detected 1 oom_kill event in StepId=35799984.batch. Some of the step tasks have been OOM Killed.

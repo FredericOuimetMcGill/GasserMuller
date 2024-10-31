@@ -1,6 +1,0 @@
-Loading required package: LaplacesDemon
-Loading required package: ggplot2
-Loading required package: cubature
-Loading required package: parallel
-Loading required package: writexl
-slurmstepd: error: *** JOB 35811408 ON nc10536 CANCELLED AT 2024-10-11T06:14:31 DUE TO TIME LIMIT ***
