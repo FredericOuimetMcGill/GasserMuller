@@ -1,0 +1,44 @@
+Loading required package: cubature
+Loading required package: doFuture
+Loading required package: foreach
+Loading required package: future
+Loading required package: fs
+Loading required package: future.batchtools
+Loading required package: parallelly
+Loading required package: ggplot2
+Loading required package: LaplacesDemon
+Loading required package: parallel
+Loading required package: tidyverse
+── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ lubridate 1.9.3     ✔ tibble    3.2.1
+✔ purrr     1.0.2     ✔ tidyr     1.3.1
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ purrr::accumulate()   masks foreach::accumulate()
+✖ lubridate::dst()      masks LaplacesDemon::dst()
+✖ dplyr::filter()       masks stats::filter()
+✖ lubridate::interval() masks LaplacesDemon::interval()
+✖ dplyr::lag()          masks stats::lag()
+✖ purrr::partial()      masks LaplacesDemon::partial()
+✖ purrr::when()         masks foreach::when()
+ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+Loading required package: writexl
+Error: Failed to submit BatchtoolsSlurmFuture (doFuture-1). The reason was: Fatal error occurred: 101. Command 'sbatch' produced exit code 1. Output: 'sbatch: error: [00;31m----------------------------------------
+sbatch: error: You are associated with multiple _cpu allocations...
+sbatch: error: Please specify one of the following accounts to submit this job:
+sbatch: error:   RAS default accounts: def-anmak6, def-cgenest, 
+sbatch: error:           RAC accounts: 
+sbatch: error: Compute-Burst accounts: 
+sbatch: error:         Other accounts: 
+sbatch: error: Use the parameter --account=desired_account when submitting your job
+sbatch: error: ----------------------------------------[00m
+sbatch: error: Batch job submission failed: Unspecified error'
+TROUBLESHOOTING INFORMATION:
+batchtools::submitJobs() was called with the following 'resources' argument:
+List of 4
+ $ cpus_per_task: num 39
+ $ mem          : chr "180G"
+ $ walltime     : chr "24:00:00"
+ $ nodes        : num 1
+Execution halted

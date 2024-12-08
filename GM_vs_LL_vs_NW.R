@@ -125,7 +125,7 @@ BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 MM <- list("GM", "LL", "NW") # list of Dirichlet kernel methods
 KK <- c(7, 10, 14) # indices for the mesh
 JJ <- 1:3 # target regression function indices
-RR <- 1:2 # replication indices
+RR <- 81:100 # replication indices
 
 tol1 <- 1e-3
 tol2 <- 1e-1
@@ -137,7 +137,7 @@ tol2 <- 1e-1
 resources_list <- list(
   cpus_per_task = cores_per_node,
   mem = "180G",
-  walltime = "24:00:00",
+  walltime = "16:00:00",
   nodes = 1
   # Omit 'partition' to let SLURM choose
 )
@@ -174,13 +174,13 @@ n_to_k <- function(n) {
 m <- function(j, x) { # x is a d-dim vector on the simplex
   if (j == 1) {
     # Case when j = 1
-    res <- x[1] * x[2]
+    res <- x[1] * (1 + x[2])
   } else if (j == 2) {
     # Case when j = 2
-    res <- (x[1] - 0.25) ^ 2 + (x[2] - 0.75) ^ 2
+    res <- (x[1] + 0.25) ^ 2 + (x[2] + 0.75) ^ 2
   } else if (j == 3) {
     # Case when j = 3
-    res <- x[1] * exp(-x[2])
+    res <- (1 + x[1]) * exp(x[2])
   } else {
     # Default case if j is not 1, 2, or 3
     warning("Invalid value of j. Should be 1, 2, or 3.")

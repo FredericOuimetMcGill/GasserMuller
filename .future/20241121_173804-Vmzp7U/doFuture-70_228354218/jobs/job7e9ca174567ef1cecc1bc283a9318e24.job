@@ -1,0 +1,15 @@
+#!/bin/sh
+#SBATCH --job-name=doFuture-70
+#SBATCH --time=16:00:00
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=39
+#SBATCH --mem=180G
+#SBATCH -o log/%x_%j_%A_%a.out
+#SBATCH --mail-user=fred1515@hotmail.com
+#SBATCH --mail-type=ALL
+#SBATCH --output=message/%x_%j_%A_%a-result.txt
+#SBATCH --error=message/%x_%j_%A_%a-error.txt
+#SBATCH --exclusive
+#SBATCH --account=def-cgenest
+module load StdEnv/2023 r/4.3.1
+Rscript -e 'batchtools::doJobCollection("/home/fouimet/GasserMuller/.future/20241121_173804-Vmzp7U/doFuture-70_228354218/jobs/job7e9ca174567ef1cecc1bc283a9318e24.rds")'

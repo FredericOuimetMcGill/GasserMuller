@@ -1,0 +1,1 @@
+slurmstepd: error: *** JOB 52596721 ON bc11550 CANCELLED AT 2024-11-21T19:23:24 ***

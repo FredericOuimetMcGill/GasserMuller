@@ -1,0 +1,9 @@
+### [bt]: This is batchtools v0.9.17
+### [bt]: Starting calculation of 1 jobs
+### [bt]: Setting working directory to '/home/fouimet/GasserMuller'
+### [bt]: Memory measurement disabled
+### [bt]: Starting job [batchtools job.id=1]
+### [bt]: Setting seed to 17070 ...
+
+### [bt]: Job terminated successfully [batchtools job.id=1]
+### [bt]: Calculation finished!

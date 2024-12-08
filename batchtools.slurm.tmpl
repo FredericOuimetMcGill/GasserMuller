@@ -11,6 +11,7 @@
 #SBATCH --output=message/%x_%j_%A_%a-result.txt
 #SBATCH --error=message/%x_%j_%A_%a-error.txt
 #SBATCH --exclusive
+#SBATCH --account=def-cgenest
 
 ## Run R:
 module load StdEnv/2023 r/4.3.1
