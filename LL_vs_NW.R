@@ -51,6 +51,8 @@ vars_to_export <- c(
   "b_opt_grid",
   "b_opt_value_MC_grid",
   "d",
+  "design",
+  "design_option",
   "elapsed_time",
   "hat_m",
   "integrand",
@@ -122,13 +124,16 @@ MCsim <- 10 ^ 3 # number of uniforms sampled for integral MC estimates
 cores_per_node <- 39 # number of cores for each node in the super-computer
 BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 
-MM <- list("GM", "LL", "NW") # list of Dirichlet kernel methods
-KK <- c(7, 10, 14) # indices for the mesh
-JJ <- 4:6 # target regression function indices
-RR <- 1:20 # replication indices
+MM <- list("LL", "NW") # list of Dirichlet kernel methods
+KK <- c(7) # indices for the mesh
+JJ <- 1:6 # target regression function indices
+RR <- 1:1 # replication indices
 
 tol1 <- 1e-3
 tol2 <- 1e-1
+
+# Fixed design (1), Random design (2)
+design_option <- 1
 
 ##############################
 ## Parallelization on nodes ##
@@ -137,7 +142,7 @@ tol2 <- 1e-1
 resources_list <- list(
   cpus_per_task = cores_per_node,
   mem = "180G",
-  walltime = "16:00:00",
+  walltime = "00:30:00",
   nodes = 1
   # Omit 'partition' to let SLURM choose
 )
@@ -165,6 +170,17 @@ n_to_k <- function(n) {
   (-1 + sqrt(1 + 8 * n)) / 2
 }
 
+#######################
+## Design generation ##
+#######################
+
+# Generate random design points following a Dirichlet(2, 2, 2) distribution
+design <- function(n) {
+  samples <- LaplacesDemon::rdirichlet(n, alpha = c(2, 2, 2))
+  result <- lapply(seq_len(n), function(i) samples[i, 1:2])
+  return(result)
+}
+
 #################################
 ## Target regression functions ##
 #################################
@@ -172,20 +188,25 @@ n_to_k <- function(n) {
 # for one design point x
 
 m <- function(j, x) { # x is a d-dim vector on the simplex
-  if (j == 1) {
-    # Case when j = 1
-    res <- x[1] * (1 + x[2])
-  } else if (j == 2) {
-    # Case when j = 2
-    res <- (x[1] + 0.25) ^ 2 + (x[2] + 0.75) ^ 2
-  } else if (j == 3) {
-    # Case when j = 3
-    res <- (1 + x[1]) * exp(x[2])
-  } else {
-    # Default case if j is not 1, 2, or 3
-    warning("Invalid value of j. Should be 1, 2, or 3.")
-    res <- NULL
-  }
+  res <- switch(j,
+                # Case when j = 1
+                `1` = x[1] * x[2],
+                # Case when j = 2
+                `2` = log(1 + x[1] + x[2]),
+                # Case when j = 3
+                `3` = sin(x[1]) + cos(x[2]),
+                # Case when j = 4
+                `4` = sqrt(x[1]) + sqrt(x[2]),
+                # Case when j = 5
+                `5` = (x[1] + 0.25) ^ 2 + (x[2] + 0.75) ^ 2,
+                # Case when j = 6
+                `6` = (1 + x[1]) * exp(x[2]),
+                # Default case
+                {
+                  # Default case if j is not 1, 2, ..., 6
+                  warning("Invalid value of j.")
+                  res <- NULL
+                })
   return(res)
 }
 
@@ -762,8 +783,14 @@ res <- foreach(r = RR, .combine = "rbind",
   # Loop over combinations of j, k, and method within each worker
   for (j in JJ) {
     for (k in KK) {
-      # Generate the mesh of design points once for each k
-      xx <- mesh(k)
+      # Generate the design points
+      if (design_option == 1) {
+        xx <- mesh(k) # Fixed design
+      } else if (design_option == 2) {
+        xx <- design(k * (k + 1) / 2) # Random design
+      } else {
+        stop("Invalid value for design_option. Must be 1 (fixed design) or 2 (random design).")
+      }
       
       for (method in MM) {
         # Compute ISE_MC for the current combination
