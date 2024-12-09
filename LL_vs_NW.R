@@ -1,8 +1,8 @@
-##################################################################
-## Gasser-Muller estimator with Dirichlet kernel on the simplex ##
-##################################################################
+###########################################################################################
+## Local linear smoothing for regression surfaces on the simplex using Dirichlet kernels ##
+###########################################################################################
 
-## Written by Frederic Ouimet (October 2024)
+## Written by Frederic Ouimet (December 2024)
 
 require("cubature")             # for integrals
 require("doFuture")             # for parallel execution with foreach
