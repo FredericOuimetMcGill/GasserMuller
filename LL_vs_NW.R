@@ -125,9 +125,9 @@ cores_per_node <- 39 # number of cores for each node in the super-computer
 BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 
 MM <- list("LL", "NW") # list of Dirichlet kernel methods
-KK <- c(7) # indices for the mesh
+KK <- c(7, 10, 14, 20) # indices for the mesh
 JJ <- 1:6 # target regression function indices
-RR <- 1:1 # replication indices
+RR <- 1:100 # replication indices
 
 tol1 <- 1e-3
 tol2 <- 1e-1
@@ -142,7 +142,7 @@ design_option <- 1
 resources_list <- list(
   cpus_per_task = cores_per_node,
   mem = "180G",
-  walltime = "00:30:00",
+  walltime = "6:00:00",
   nodes = 1
   # Omit 'partition' to let SLURM choose
 )

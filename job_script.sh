@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#SBATCH --time=36:00:00
+#SBATCH --time=72:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=39
 #SBATCH --mem=180G
@@ -13,4 +13,4 @@
 #SBATCH --account=def-cgenest
 
 module load StdEnv/2023 r/4.3.1
-Rscript GM_vs_LL_vs_NW.R
+Rscript LL_vs_NW_boundary.R
