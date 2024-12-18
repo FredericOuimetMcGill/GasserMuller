@@ -726,10 +726,10 @@ ISE <- function(xx, j, method) {
 ISE_MC <- function(xx, j, method) {
   d <- length(xx[[1]])
   n <- length(xx)
-  threshold <- n^(-2 / (d + 4))
+  threshold <- 0.2 * n^(-2 / (d + 4))
   
-  # Initialize variables
-  unif_sample <- NULL
+  # Initialize variables as an empty matrix with correct number of columns
+  unif_sample <- matrix(0, nrow = 0, ncol = d + 1)
   
   # Generate restricted uniform samples
   while (nrow(unif_sample) < MCsim) {
@@ -744,8 +744,8 @@ ISE_MC <- function(xx, j, method) {
   }
   
   # Retain only the first MCsim samples
-  unif_sample <- unif_sample[1:MCsim, ]
-
+  unif_sample <- unif_sample[1:MCsim, , drop = FALSE]
+  
   # Pass the filtered samples to the b_opt_MC_grid function
   return(b_opt_MC_grid(xx, j, method, unif_sample, return_LSCV_MC = TRUE))
 }
