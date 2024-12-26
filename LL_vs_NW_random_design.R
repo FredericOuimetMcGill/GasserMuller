@@ -123,7 +123,7 @@ d <- 2 # dimension of simplex
 MCsim <- 10 ^ 3 # number of uniforms sampled for integral MC estimates
 
 cores_per_node <- 39 # number of cores for each node in the super-computer
-BB <- seq(0.01, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
+BB <- seq(0.05, 1, length.out = cores_per_node) # bandwidths for LSCV_MC graphs
 
 MM <- list("LL", "NW") # list of Dirichlet kernel methods
 KK <- c(7, 10, 14, 20) # indices for the mesh
@@ -184,7 +184,7 @@ design_generate <- function(n) {
 
 # Density function of a Dirichlet(2, 2, 2) distribution
 design_density <- function(s) {
-  return(LaplacesDemon::ddirichlet(s, alpha = c(2, 2, 2)))
+  return(LaplacesDemon::ddirichlet(c(s, 1 - sum(s)), alpha = c(2, 2, 2)))
 }
 
 #################################

@@ -13,4 +13,4 @@
 #SBATCH --account=def-cgenest
 
 module load StdEnv/2023 r/4.3.1
-Rscript LL_vs_NW_boundary.R
+Rscript LL_vs_NW_random_design.R
